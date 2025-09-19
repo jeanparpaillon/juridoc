@@ -163,7 +163,7 @@ def gen_index(index):
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Sources indexer")
-	parser.add_argument("command", choices=["index", "all"], help="Command to run: index, all")
+	parser.add_argument("command", choices=["index", "sources", "all"], help="Command to run: index, sources, all")
 	parser.add_argument("directory", nargs="?", default=".", help="Source directory (default: current directory)")
 	args = parser.parse_args()
 
@@ -171,6 +171,8 @@ if __name__ == "__main__":
 
 	if args.command == "index":
 		gen_index(repo['index'])
+	elif args.command == "sources":
+		copy_sources(repo)
 	elif args.command == "all":
 		gen_index(repo['index'])
 		copy_sources(repo)
