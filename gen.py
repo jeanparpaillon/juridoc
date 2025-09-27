@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-import re
-import sys
-import os
-import hashlib
 import argparse
-import pyexcel
-import shutil
+import hashlib
 import odfdo
+import os
+import pyexcel
+import pypdf
+import re
+import shutil
+import sys
 
 INDEX="index"
 SOURCES="sources"
@@ -218,7 +219,7 @@ def gen_index(index):
 	pyexcel.save_as(array=rows, dest_file_name=os.path.join(OUT, index['meta_file']))
 
 def format_xref(uri, records):
-	return f"pièce {records[uri]['idx']}"
+	return f"{records[uri]['idx']}"
 
 def render_notes(out_dir, note, index):
 	"""
@@ -266,21 +267,66 @@ def cleanup():
 	else:
 		print(f"{OUT} directory does not exist.", file=sys.stderr)
 
+
+def split_pdf(filename, ranges):
+	"""
+	Split a PDF into multiple PDFs given a list of (start, end) page ranges (1-based, inclusive).
+	Writes each output as <filename>_<start>[_<end>].pdf in the same directory as input.
+	"""
+	reader = pypdf.PdfReader(filename)
+	base = os.path.splitext(os.path.basename(filename))[0]
+	out_dir = os.path.dirname(filename)
+	for r in ranges:
+		start, end = r
+		writer = pypdf.PdfWriter()
+		for i in range(start - 1, end):
+			writer.add_page(reader.pages[i])
+		if start == end:
+			out_name = f"{base}_{start}.pdf"
+		else:
+			out_name = f"{base}_{start}_{end}.pdf"
+		out_path = os.path.join(out_dir, out_name)
+		with open(out_path, "wb") as f:
+			writer.write(f)
+		print(f"Wrote {out_path}", file=sys.stderr)
+
+def parse_ranges(ranges_str):
+	"""
+	Parse a string like '2-3,5,7-9' into a list of (start, end) tuples.
+	"""
+	result = []
+	for part in ranges_str.split(','):
+		part = part.strip()
+		if '-' in part:
+			start, end = part.split('-')
+			result.append((int(start), int(end)))
+		else:
+			val = int(part)
+			result.append((val, val))
+	return result
+
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="Sources indexer")
-	parser.add_argument("command", choices=["index", "sources", "notes", "all"], help="Command to run: index, sources, notes, all")
-	parser.add_argument("directory", nargs="?", default=".", help="Source directory (default: current directory)")
+	parser.add_argument("command", choices=["index", "sources", "notes", "all", "split"], help="Command to run: index, sources, notes, all, split")
+	parser.add_argument("arg2", nargs="?", default=None, help="Second argument: directory (default) or PDF file (for split)")
+	parser.add_argument("arg3", nargs="?", default=None, help="Third argument: ranges string for split command")
 	args = parser.parse_args()
 
-	repo = load_repo(args.directory)
-
-	if args.command == "index":
-		gen_index(repo['index'])
-	elif args.command == "sources":
-		copy_sources(repo)
-	elif args.command == "notes":
-		process_notes(repo)
-	elif args.command == "all":
-		gen_index(repo['index'])
-		copy_sources(repo)
-		process_notes(repo)
+	if args.command == "split":
+		if not args.arg2 or not args.arg3:
+			print("split command requires PDF file as second argument and ranges string as third argument", file=sys.stderr)
+			sys.exit(1)
+		ranges = parse_ranges(args.arg3)
+		split_pdf(args.arg2, ranges)
+	else:
+		repo = load_repo(args.arg2 if args.arg2 else ".")
+		if args.command == "index":
+			gen_index(repo['index'])
+		elif args.command == "sources":
+			copy_sources(repo)
+		elif args.command == "notes":
+			process_notes(repo)
+		elif args.command == "all":
+			gen_index(repo['index'])
+			copy_sources(repo)
+			process_notes(repo)

@@ -1,3 +1,5 @@
 pyexcel
 pyexcel-ods3
 pyexcel-xlsx
+odfdo
+pypdf
