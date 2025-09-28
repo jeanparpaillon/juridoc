@@ -1,14 +1,17 @@
 all: build
 
 build:
-	python setup.py sdist bdist_wheel
+	python -m build
 
-win_build:
+exe:
+	pyinstaller juridoc.spec
+
+win_exe:
 	docker run \
-	--rm \
-	-v $(PWD):/src \
-	cdrx/pyinstaller-windows:python3 \
-	python setup.py build_pyinstaller
+	  --rm \
+	  -v $(PWD):/src \
+	  cdrx/pyinstaller-windows:python3 \
+	  pyinstaller juridoc.spec
 
 clean:
 	rm -rf dist build *.egg-info
