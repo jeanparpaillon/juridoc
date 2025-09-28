@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import juridoc
 import sys
 from PySide6.QtWidgets import (
@@ -130,11 +129,8 @@ class JuridocGUI(QMainWindow):
             self.cmd_status.setText(f"Error: {e}")
 
 
-def main():
+def run():
     app = QApplication(sys.argv)
     window = JuridocGUI()
     window.show()
-    sys.exit(app.exec())
-
-if __name__ == "__main__":
-    main()
+    app.exec()

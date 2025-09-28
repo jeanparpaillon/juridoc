@@ -1,6 +1,6 @@
-all: build
+all: wheel
 
-build:
+wheel:
 	python -m build
 
 exe:
@@ -16,4 +16,4 @@ win_exe:
 clean:
 	rm -rf dist build *.egg-info
 
-.PHONY: all clean
+.PHONY: all wheel exe win_exe clean
