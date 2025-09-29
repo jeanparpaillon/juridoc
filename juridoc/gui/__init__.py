@@ -1,7 +1,5 @@
-import sys
-from .main import run
+from .sources_widget import SourcesWidget
+from .notes_widget import NotesWidget
+from .index_widget import IndexWidget
 
-def main():
-    sys.exit(run())
-
-__all__ = ["run"]
+__all__ = ['SourcesWidget', 'NotesWidget', 'IndexWidget']

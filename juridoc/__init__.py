@@ -1,11 +1,9 @@
-from . import gui
-from .lib import load_repo, parse_ranges, split_pdf, gen_index, copy_sources, process_notes
+from .db import Db
+from .note import Note
+from .repo import Repo
+from .source import Source
+from .sources_index import SourcesIndex
 
-__all__ = [
-    "load_repo",
-    "parse_ranges",
-    "split_pdf",
-    "gen_index",
-    "copy_sources",
-    "process_notes",
-]
+from .gui.main import run
+
+__all__ = ['Repo', 'Db', 'SourcesIndex', 'Note', 'Source', 'run']
