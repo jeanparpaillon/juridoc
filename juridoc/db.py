@@ -28,7 +28,8 @@ class Db:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     hash TEXT NOT NULL UNIQUE,
                     sources_dir TEXT,
-                    filepath TEXT UNIQUE
+                    path TEXT UNIQUE,
+                    image BLOB
                 )
             ''')
             self.conn.execute('''CREATE INDEX idx_source_hash ON source(hash)''')
@@ -38,7 +39,7 @@ class Db:
                 CREATE TABLE notes (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     notes_dir TEXT,
-                    filepath TEXT UNIQUE
+                    path TEXT UNIQUE
                 )
             ''')
 

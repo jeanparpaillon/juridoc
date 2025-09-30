@@ -25,13 +25,7 @@ class JuridocGUI(QMainWindow):
         super().__init__()
 
         self.repo = Repo()
-        sources_dir = Config().get('sources_dir')
-        if sources_dir:
-            self.repo.set_sources_dir(sources_dir)
-
-        notes_dir = Config().get('notes_dir')
-        if notes_dir:
-            self.repo.set_notes_dir(notes_dir)
+        Config().load()
 
         self.setWindowTitle("Juridoc")
         self.setGeometry(100, 100, 1000, 600)
@@ -62,16 +56,13 @@ class JuridocGUI(QMainWindow):
         # --- Central Tabs ---
         self.tabs = QTabWidget()
         
-        self.sources_tab = SourcesWidget()
+        self.sources_tab = SourcesWidget(self.repo, parent=self)
         self.sources_tab_idx = self.tabs.addTab(self.sources_tab, "Sources")
         
-        self.notes_tab = NotesWidget()
+        self.notes_tab = NotesWidget(parent=self)
         self.notes_tab_idx = self.tabs.addTab(self.notes_tab, "Notes")
 
         self.tabs.setCurrentIndex(self.sources_tab_idx)
-
-        # Update Sources tab content once created
-        self.sources_tab.refresh()
 
         self.setCentralWidget(self.tabs)
 
@@ -83,8 +74,7 @@ class JuridocGUI(QMainWindow):
         if not directory:
             return
 
-        self.repo.set_sources_dir(directory)
-        self.sources_tab.refresh()
+        Config().set('sources_dir', directory)
         self.tabs.setCurrentIndex(self.sources_tab_idx)
 
     def set_notes_dir(self):
@@ -92,8 +82,7 @@ class JuridocGUI(QMainWindow):
         if not directory:
             return
 
-        self.repo.set_notes_dir(directory)
-        self.notes_tab.refresh()
+        Config().set('notes_dir', directory)
         self.tabs.setCurrentIndex(self.notes_tab_idx)
 
     def save_db(self):

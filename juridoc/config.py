@@ -1,24 +1,43 @@
+from PySide6.QtCore import QObject, Signal
+
 from .db import Db
 
-class Config:
+class Config(QObject):
     _instance = None
+    _initialized = False
 
-    def __new__(cls):
+    config_changed = Signal(str, str)
+
+    def __new__(cls, *args, **kwargs):
         if cls._instance is None:
-            cls._instance = super(Config, cls).__new__(cls)
+            cls._instance = super().__new__(cls)
         return cls._instance
 
-    def get(self, key):
+    def __init__(self):
+        if not self._initialized:
+            super().__init__()
+            self._initialized = True
+
+    def load(self):
+        with Db().get_conn() as conn:
+            for row in conn.execute('SELECT key, value FROM config'):
+                self.config_changed.emit(row['key'], row['value'])
+
+    def get(self, key: str) -> str:
+        value = None
+
         with Db().get_conn() as conn:
             ret = conn.execute('SELECT value FROM config WHERE key = ?', (key,)).fetchone()
             if ret:
-                return ret[0]
-        return None
+                value = ret[0]
 
-    def set(self, key, value):
+        return value
+
+    def set(self, key: str, value: str) -> None:
         with Db().get_conn() as conn:
-            ret = conn.execute('''
+            conn.execute('''
                     INSERT OR REPLACE INTO config (key, value)
                     VALUES (?, ?)
                   ''', (key, value))
-            conn.commit()
+            
+        self.config_changed.emit(key, value)

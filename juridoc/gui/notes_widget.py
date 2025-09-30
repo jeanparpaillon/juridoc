@@ -3,8 +3,8 @@ from PySide6.QtWidgets import (
 )
 
 class NotesWidget(QWidget):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
         
         self.layout = QVBoxLayout()
         label = QLabel(f"Notes pane")
