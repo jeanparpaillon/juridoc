@@ -2,10 +2,13 @@ import logging
 import os
 import shutil
 
+from .config import Config
 from .db import Db
 from .sources_index import SourcesIndex
 from .note import Note
 from .source import Source
+from .db_loader import load_sources
+from .db_loader import load_notes
 
 logger = logging.getLogger(__name__)
 
@@ -24,12 +27,14 @@ class Repo():
 
     def set_sources_dir(self, sources_dir):
         self.sources_dir = sources_dir
-        self._load()
+        Config().set('sources_dir', sources_dir)
+        self._analyse()
         return self
 
     def set_notes_dir(self, notes_dir):
         self.notes_dir = notes_dir
-        self._load()
+        Config().set('notes_dir', notes_dir)
+        self._analyse()
         return self
 
     def set_output_dir(self, output_dir):
@@ -41,10 +46,8 @@ class Repo():
         output_notes_dir = os.path.join(self.output_dir, self.notes_output_subdir)
         os.makedirs(output_notes_dir, exist_ok=True)
     
-        with Db().get_conn() as conn:
-            for row in conn.execute('SELECT id, filepath FROM notes ORDER BY id'):
-                note = Note(self.notes_dir, row['filepath'])
-                note.process(output_notes_dir)
+        for note in load_notes():
+            note.process(output_notes_dir)
 
     def export_index(self):
         index = SourcesIndex().load()
@@ -54,25 +57,19 @@ class Repo():
         output_sources_dir = os.path.join(self.output_dir, self.sources_subdir)
         os.makedirs(output_sources_dir, exist_ok=True)
 
-        with Db().get_conn() as conn:
-            for row in conn.execute('''
-                    SELECT source.filepath
-                    FROM source 
-                    LEFT JOIN xref ON source.hash = xref.source_hash 
-                    GROUP BY source.id
-                    '''):
-                src_path = os.path.join(self.sources_dir, row['filepath'])
-                dest_path = os.path.join(output_sources_dir, row['filepath'])
-                os.makedirs(os.path.dirname(dest_path), exist_ok=True)
-                shutil.copy2(src_path, dest_path)
-                logging.info(f"Copied source: {row['filepath']}")
+        for source in load_sources():
+            src_path = os.path.join(self.sources_dir, source.relpath)
+            dest_path = os.path.join(output_sources_dir, source.relpath)
+            os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+            shutil.copy2(src_path, dest_path)
+            logging.info(f"Copied source: {source.relpath}")
 
-    def _load(self):
-        self._load_sources()
-        self._load_notes()
+    def _analyse(self):
+        self._analyse_sources()
+        self._analyse_notes()
         return self
 
-    def _load_sources(self):
+    def _analyse_sources(self):
         if self.sources_dir is None:
             return self
         
@@ -83,10 +80,11 @@ class Repo():
                 for filename in sorted(filenames):
                     filepath = os.path.join(dirpath, filename)
                     Source(self.sources_dir, os.path.relpath(filepath, self.sources_dir)).load().save(conn)
+            conn.commit()
 
         return self
 
-    def _load_notes(self):
+    def _analyse_notes(self):
         if self.notes_dir is None:
             return self
         
@@ -96,6 +94,7 @@ class Repo():
             for dirpath, _, filenames in os.walk(self.notes_dir):
                 for filename in sorted(filenames):
                     filepath = os.path.join(dirpath, filename)
-                    Note(self.notes_dir, os.path.relpath(filepath, self.notes_dir)).load().save(conn)
+                    Note(self.notes_dir, os.path.relpath(filepath, self.notes_dir)).analyse().save(conn)
+            conn.commit()
 
         return self

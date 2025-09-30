@@ -3,11 +3,14 @@ from PySide6.QtWidgets import (
 )
 
 class NotesWidget(QWidget):
-    def __init__(self, repo):
+    def __init__(self):
         super().__init__()
-        self.repo = repo
-        layout = QVBoxLayout()
-        label = QLabel(f"Notes directory:\n{self.repo.notes_dir}")
-        layout.addWidget(label)
-        self.setLayout(layout)
+        
+        self.layout = QVBoxLayout()
+        label = QLabel(f"Notes pane")
+        self.layout.addWidget(label)
+        self.setLayout(self.layout)
+
+    def refresh(self):
+        pass
 

@@ -10,13 +10,14 @@ from .db import Db
 logger = logging.getLogger(__name__)
 
 class Note():
-    def __init__(self, notes_dir, path):
+    def __init__(self, notes_dir, path, idx=None):
         # path is relative to notes_dir
         self.notes_dir = notes_dir
         self.relpath = path
         self.xrefs = []
+        self.idx = idx
 
-    def load(self):
+    def analyse(self):
         path = os.path.join(self.notes_dir, self.relpath)
 
         try:
@@ -129,5 +130,6 @@ class Note():
                     INSERT INTO xref (source_hash, note_id)
                     VALUES (?, ?)
                 ''', (xref, note_id))
+            conn.commit()
 
         return self

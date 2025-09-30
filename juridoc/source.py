@@ -5,13 +5,13 @@ from .utils import *
 logger = logging.getLogger(__name__)
 
 class Source():
-    def __init__(self, sources_dir, path):
+    def __init__(self, sources_dir, path, hash=None, xref=False, idx=None):
         # path is relative to sources_dir
+        self.idx = idx
+        self.hash = hash
         self.sources_dir = sources_dir
         self.relpath = path
-        self.idx = None
-        self.hash = None
-        self.xref = False
+        self.xref = xref
 
     def load(self):
         path = os.path.join(self.sources_dir, self.relpath)

@@ -11,8 +11,17 @@ class Db:
 
     def _init_db(self):
         self.conn = sqlite3.connect(':memory:')
+        self.conn.row_factory = sqlite3.Row
 
         with self.conn:
+            # Config table
+            self.conn.execute('''
+                CREATE TABLE config (
+                    key TEXT NOT NULL UNIQUE,
+                    value TEXT              
+                )
+            ''')
+
             # Source table
             self.conn.execute('''
                 CREATE TABLE source (
@@ -47,3 +56,16 @@ class Db:
 
     def get_conn(self):
         return self.conn
+    
+    def load(self, path):
+        file_conn = sqlite3.connect(path)
+        file_conn.row_factory = sqlite3.Row
+        file_conn.backup(self.conn)
+        file_conn.close()
+        return self
+    
+    def save(self, path):
+        file_conn = sqlite3.connect(path)
+        self.conn.backup(file_conn)
+        self.conn = file_conn
+        return self
