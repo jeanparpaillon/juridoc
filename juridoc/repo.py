@@ -34,8 +34,10 @@ class Repo(QObject):
         self.notes_watcher = None
 
         Config().config_changed.connect(self._on_config_changed)
+        Config().load()
 
     def _on_config_changed(self, key, value):
+        logger.debug(f"Config change: {key}={value}")
         if key == 'sources_dir':
             self.set_sources_dir(value)
         elif key == 'notes_dir':
@@ -97,7 +99,7 @@ class Repo(QObject):
 
     def _cleanup_source_db(self, to_delete_ids, conn=Db().get_conn()):
         with conn:
-            to_delete = ", ".join("'?'" * len(to_delete_ids))
+            to_delete = ", ".join("?" * len(to_delete_ids))
             sql = f"DELETE FROM source WHERE id IN ({to_delete})"
             conn.execute(sql, list(to_delete_ids))
             conn.commit()

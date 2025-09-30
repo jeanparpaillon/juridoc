@@ -23,6 +23,7 @@ class SourcesWidget(QWidget):
         logger.info("Creates sources widget")
 
         self.label_size = QSize(120, 160)
+        self.row, self.col = 0, 0
         self.max_cols = 6
 
         container = QWidget()
@@ -40,7 +41,13 @@ class SourcesWidget(QWidget):
         self.setAcceptDrops(not self.repo.sources_dir)
 
     def _on_source_added(self, source):
-        logger.info(f"Source added: {source.id}")
+        if source.relpath.lower().endswith('.pdf'):
+            label = SourceWidget(source, size=self.label_size, parent=self)
+            self.grid.addWidget(label, self.row, self.col)
+            self.col += 1
+            if self.col >= self.max_cols:
+                self.col = 0
+                self.row += 1
 
     def _on_source_changed(self, source, changes):
         logger.info(f"Source changed: {source.id}: {changes}")
@@ -75,17 +82,6 @@ class SourcesWidget(QWidget):
         if os.path.isdir(path):
             self.repo.set_sources_dir(path)
             self.setAcceptDrops(False)
-
-    #def populate_grid(self):
-    #    row, col = 0, 0
-    #    for src in load_sources():
-    #        if src.relpath.lower().endswith('.pdf'):
-    #            label = SourceWidget(src, size=self.label_size, parent=self)
-    #            self.grid.addWidget(label, row, col)
-    #            col += 1
-    #            if col >= self.max_cols:
-    #                col = 0
-    #                row += 1
 
     def select_source(self, source):
         self.selected_source = source
