@@ -6,6 +6,8 @@ from PySide6.QtWidgets import (
     QWidget, QGridLayout, QVBoxLayout, QScrollArea
 )
 
+from juridoc import Config
+
 from .source_widget import SourceWidget
 
 logger = logging.getLogger(__name__)
@@ -80,7 +82,7 @@ class SourcesWidget(QWidget):
         url = event.mimeData().urls()[0]
         path = url.toLocalFile()
         if os.path.isdir(path):
-            self.repo.set_sources_dir(path)
+            Config().set('sources_dir', path)
             self.setAcceptDrops(False)
 
     def select_source(self, source):

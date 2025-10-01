@@ -1,6 +1,10 @@
+import logging
+
 from PySide6.QtCore import QObject, Signal
 
 from .db import Db
+
+logger = logging.getLogger(__name__)
 
 class Config(QObject):
     _instance = None
@@ -21,7 +25,10 @@ class Config(QObject):
     def load(self):
         with Db().get_conn() as conn:
             for row in conn.execute('SELECT key, value FROM config'):
-                self.config_changed.emit(row['key'], row['value'])
+                key = row['key']
+                value = row['value']
+                logger.debug(f"Read config: {key}={value}")
+                self.config_changed.emit(key, value)
 
     def get(self, key: str) -> str:
         value = None
@@ -36,8 +43,10 @@ class Config(QObject):
     def set(self, key: str, value: str) -> None:
         with Db().get_conn() as conn:
             conn.execute('''
-                    INSERT OR REPLACE INTO config (key, value)
+                    INSERT INTO config (key, value)
                     VALUES (?, ?)
+                    ON CONFLICT(key) DO UPDATE SET
+                        value=excluded.value
                   ''', (key, value))
             
         self.config_changed.emit(key, value)

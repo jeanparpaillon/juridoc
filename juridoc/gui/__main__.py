@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 
 from PySide6.QtWidgets import (
@@ -95,15 +96,27 @@ class JuridocGUI(QMainWindow):
         else:
             super().keyPressEvent(event)
 
+def on_quit():
+    logger.info("About to quit")
+    Db().close()
+
 def run():
     logger.info("Start juridoc GUI")
     
+    if len(sys.argv) > 1:
+        db_path = sys.argv[1]
+        if os.path.exists(db_path):
+            Db().init(db_path)
+        else:
+            logger.error(f"Invalid DB path: {db_path}")
+            return
+    else:
+        Db().init(':memory:')
+
     app = QApplication(sys.argv)
+    app.aboutToQuit.connect(on_quit)
     StyleFactory().init(app)
     
-    if len(sys.argv) > 1:
-        Db().load(sys.argv[1])
-
     window = JuridocGUI()
     window.show()
     app.exec()

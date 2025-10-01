@@ -38,7 +38,7 @@ class SourceWidget(QLabel):
     
     def mousePressEvent(self, event: QMouseEvent):
         if event.button() == Qt.MouseButton.LeftButton:
-            self.parent().select_source(self.source)
+            self.parent().selected_source(self.source)
 
     def mouseDoubleClickEvent(self, event: QMouseEvent):
         if event.button() == Qt.MouseButton.LeftButton:
