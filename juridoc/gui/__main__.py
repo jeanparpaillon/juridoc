@@ -18,15 +18,9 @@ from .style_factory import StyleFactory
 
 logger = logging.getLogger(__name__)
 
-SRC_TAB = '0'
-NOTES_TAB = '1'
-
 class JuridocGUI(QMainWindow):
     def __init__(self):
         super().__init__()
-
-        self.repo = Repo()
-        Config().load()
 
         self.setWindowTitle("Juridoc")
         self.setGeometry(100, 100, 1000, 600)
@@ -57,7 +51,7 @@ class JuridocGUI(QMainWindow):
         # --- Central Tabs ---
         self.tabs = QTabWidget()
         
-        self.sources_tab = SourcesWidget(self.repo, parent=self)
+        self.sources_tab = SourcesWidget(parent=self)
         self.sources_tab_idx = self.tabs.addTab(self.sources_tab, "Sources")
         
         self.notes_tab = NotesWidget(parent=self)
@@ -100,23 +94,43 @@ def on_quit():
     logger.info("About to quit")
     Db().close()
 
+
+RETURN_BADARG=1
+RETURN_THREADSAFETY=2
+
 def run():
     logger.info("Start juridoc GUI")
     
+    # DB init
+    if not Db().is_threadsafe():
+        Db().dump_threadsafety_infos()
+
+        if not os.environ.get('IGNORE_THREADSAFETY') == '1':
+            logger.error("Dont't play with that !")
+            return RETURN_THREADSAFETY
+
     if len(sys.argv) > 1:
         db_path = sys.argv[1]
         if os.path.exists(db_path):
             Db().init(db_path)
         else:
             logger.error(f"Invalid DB path: {db_path}")
-            return
+            return RETURN_BADARG
     else:
         Db().init(':memory:')
 
+    # App init
     app = QApplication(sys.argv)
     app.aboutToQuit.connect(on_quit)
     StyleFactory().init(app)
     
     window = JuridocGUI()
     window.show()
+
+    # Repo init
+    Repo().start()
+
+    # Config must be last to load
+    Config().load()
+
     app.exec()

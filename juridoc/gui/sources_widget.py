@@ -7,18 +7,18 @@ from PySide6.QtWidgets import (
 )
 
 from juridoc import Config
+from juridoc import Repo
 
 from .source_widget import SourceWidget
 
 logger = logging.getLogger(__name__)
 
 class SourcesWidget(QWidget):
-    def __init__(self, repo, parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
-        self.repo = repo
-        repo.source_added.connect(self._on_source_added)
-        repo.source_changed.connect(self._on_source_changed)
-        repo.source_deleted.connect(self._on_source_deleted)
+        Repo().source_added.connect(self._on_source_added)
+        Repo().source_changed.connect(self._on_source_changed)
+        Repo().source_deleted.connect(self._on_source_deleted)
 
         self.selected_source = None
 
@@ -40,7 +40,7 @@ class SourcesWidget(QWidget):
         layout.addWidget(scroll)
         self.setLayout(layout)
 
-        self.setAcceptDrops(not self.repo.sources_dir)
+        self.setAcceptDrops(not Repo().sources_dir)
 
     def _on_source_added(self, source):
         if source.relpath.lower().endswith('.pdf'):
@@ -65,7 +65,7 @@ class SourcesWidget(QWidget):
                 widget.deleteLater()
 
     def dragEnterEvent(self, event):
-        if not self.repo.sources_dir:
+        if not Repo().sources_dir:
             urls = event.mimeData().urls()
             if len(urls) == 1:
                 url = urls[0]

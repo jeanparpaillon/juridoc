@@ -5,7 +5,9 @@ from PySide6.QtWidgets import (
     QLabel, QFrame, QGraphicsColorizeEffect
 )
 from PySide6.QtGui import QColor, QMouseEvent
-from PySide6.QtCore import Qt, QSize, QMargins
+from PySide6.QtCore import Qt, QSize
+
+from juridoc import Repo, Source
 
 from .pdf_thumbnailer import PdfThumbnailer
 
@@ -16,30 +18,49 @@ class SourceWidget(QLabel):
         super().__init__(parent)
 
         self.source = source
-
-        filepath = os.path.join(source.sources_dir, source.relpath)
-        self.renderer = PdfThumbnailer(filepath, 0, self, size)
+        self.renderer = None
         
         self.setFrameStyle(QFrame.Shape.Panel | QFrame.Shadow.Raised)
         self.setLineWidth(2)
         self.setFixedSize(size)
         self.setStyleSheet("background: #eee;")
 
-        if not source.xref:
-            self.setGraphicsEffect(self._grey_effect())
+        if self.source.thumbnail:
+            self.setPixmap(self.source.thumbnail)
+        else:
+            self.renderer = PdfThumbnailer(self.source.fullpath(), 0, self, size, self)
+            self.renderer.thumbnail_ready.connect(self.on_thumbnail_ready)
+
+        self._set_xref_effect()
         
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
-    def _grey_effect(self):
-        effect = QGraphicsColorizeEffect()
-        effect.setColor(QColor(128,128,128))
-        effect.setStrength(0.5)
-        return effect
+        Repo().source_changed.connect(self.on_source_changed)
+
+    def _set_xref_effect(self):
+        if self.source.xref:
+            self.setGraphicsEffect(None)
+        else:
+            effect = QGraphicsColorizeEffect()
+            effect.setColor(QColor(128,128,128))
+            effect.setStrength(0.5)
+            self.setGraphicsEffect(effect)
+    
+    def on_source_changed(self, source, changes):
+        if self.source.id == source.id:
+            if Source.XREF in changes:
+                self._set_xref_effect()
+
+    def on_thumbnail_ready(self, id, pixmap):
+        if self.renderer.id == id:
+            self.setPixmap(pixmap)
+            self.source.thumbnail = pixmap
+            self.renderer = None
     
     def mousePressEvent(self, event: QMouseEvent):
         if event.button() == Qt.MouseButton.LeftButton:
-            self.parent().selected_source(self.source)
+            self.parent.select_source(self.source)
 
     def mouseDoubleClickEvent(self, event: QMouseEvent):
         if event.button() == Qt.MouseButton.LeftButton:
-            self.parent().open_source_tab(self.source)
+            self.parent.open_source_tab(self.source)

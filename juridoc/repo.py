@@ -1,7 +1,7 @@
 import logging
 import os
 
-from PySide6.QtCore import QObject, QFileSystemWatcher, Signal
+from PySide6.QtCore import QObject, QFileSystemWatcher, QThreadPool, Signal
 
 from .config import Config
 from .db import Db
@@ -13,6 +13,9 @@ from .utils import file_hash
 logger = logging.getLogger(__name__)
 
 class Repo(QObject):
+    _instance = None
+    _initialized = False
+
     notes_output_subdir = "notes"
     index_filename = "index.ods"
     sources_subdir = "sources"
@@ -21,20 +24,27 @@ class Repo(QObject):
     source_changed = Signal(Source, list)
     source_deleted = Signal(Source)
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
 
-        self.sources_dir = None
-        self.notes_dir = None
-        self.output_dir = None
+    def __init__(self):
+        if not self._initialized:
+            super().__init__()
+            self._initialized = True
 
-        self.sources = {}
+            self.sources_dir = None
+            self.notes_dir = None
+            self.output_dir = None
 
-        self.sources_watcher = None
-        self.notes_watcher = None
+            self.sources = {}
 
+            self.sources_watcher = None
+            self.notes_watcher = None
+
+    def start(self):
         Config().config_changed.connect(self._on_config_changed)
-        Config().load()
 
     def _on_config_changed(self, key, value):
         logger.debug(f"Config change: {key}={value}")
@@ -102,7 +112,6 @@ class Repo(QObject):
             to_delete = ", ".join("?" * len(to_delete_ids))
             sql = f"DELETE FROM source WHERE id IN ({to_delete})"
             conn.execute(sql, list(to_delete_ids))
-            conn.commit()
 
         return self
     
@@ -127,7 +136,7 @@ class Repo(QObject):
                 if id in self.sources:
                     source = self.sources[id]
                 else:
-                    source = Source(self.sources_dir, relpath, id=id, parent=self)
+                    source = Source(self.sources_dir, relpath, id=id)
 
                 if source.set_hash(row['hash']):
                     logger.info(f"Source content changed: {source.relpath}")
@@ -153,7 +162,7 @@ class Repo(QObject):
             else:
                 # Not in DB
                 logger.info(f"Source added: {relpath}")
-                source = Source(self.sources_dir, relpath, hash=hash, parent=self)
+                source = Source(self.sources_dir, relpath, hash=hash)
                 id = source.save(conn)
                 source.set_id(id)
                 self.sources[id] = source

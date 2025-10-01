@@ -1,5 +1,6 @@
 import logging
 import sqlite3
+import sys
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +12,7 @@ class Db:
             cls._instance = super(Db, cls).__new__(cls)
             cls._instance.conn = None
         return cls._instance
-    
+        
     def init(self, path):
         self.open(path)
 
@@ -76,8 +77,8 @@ class Db:
         else:
             db = path
 
-        logger.debug(f"Opening DB: {db}")
-        self.conn = sqlite3.connect(path)
+        logger.debug(f"Opening DB: {db} (thread safety={sqlite3.threadsafety})")
+        self.conn = sqlite3.connect(path, check_same_thread=(sqlite3.threadsafety != 3))
         self.conn.row_factory = sqlite3.Row
 
     def get_conn(self):
@@ -97,3 +98,34 @@ class Db:
         logger.debug("Closing DB")
         self.conn.commit()
         self.conn.close()
+
+    def is_threadsafe(self):
+        return sqlite3.threadsafety == 3
+
+    def dump_threadsafety_infos(self):
+        logger.info(f"Python version : {sys.version.split()[0]}")
+        logger.info(f"sqlite3 module : {sqlite3.version}")
+        logger.info(f"SQLite library : {sqlite3.sqlite_version}")
+        logger.info(f"DB-API threadsafety : {sqlite3.threadsafety}")
+
+        # Map DB-API level to description
+        levels = {
+            0: "Not thread-safe at all",
+            1: "Module safe, but not connections",
+            2: "Connections may be shared (not used in sqlite3)",
+            3: "Module, connections and cursors are safe"
+        }
+        logger.info(f"Meaning : {levels.get(sqlite3.threadsafety, 'Unknown')}")
+
+        # Try to get compile options
+        try:
+            conn = sqlite3.connect(":memory:")
+            options = [row[0] for row in conn.execute("PRAGMA compile_options")]
+            conn.close()
+            ts_opts = [opt for opt in options if opt.startswith("THREADSAFE")]
+            if ts_opts:
+                logger.info(f"Compile option : {ts_opts[0]}")
+            else:
+                logger.info("Compile option : not available")
+        except Exception as e:
+            logger.info(f"Compile option : could not query ({e})")

@@ -1,6 +1,7 @@
+import os
 import logging
 
-from PySide6.QtCore import QObject, QByteArray, QBuffer, QIODevice
+from PySide6.QtCore import QByteArray, QBuffer, QIODevice
 from PySide6.QtGui import QPixmap
 
 from .db import Db
@@ -8,14 +9,12 @@ from .utils import *
 
 logger = logging.getLogger(__name__)
 
-class Source(QObject):
+class Source():
     HASH = 0
     PATH = 1
     XREF = 2
 
-    def __init__(self, sources_dir, path, hash=None, xref=False, id=None, parent=None):
-        super().__init__(parent)
-
+    def __init__(self, sources_dir, path, hash=None, xref=False, id=None):
         # path is relative to sources_dir
         self.id = id
         self.hash = hash
@@ -23,6 +22,9 @@ class Source(QObject):
         self.relpath = path
         self.xref = xref
         self.thumbnail = None
+
+    def fullpath(self):
+        return os.path.join(self.sources_dir, self.relpath)
 
     def set_id(self, id):
         self.id = id
